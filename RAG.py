@@ -84,12 +84,12 @@ chain = (
 )
 
 
-def ask_langchain(question):
+def ask(question):
     answer = chain.invoke(question)
     return answer
 
 if __name__ == "__main__":
     indexed_chunks = index_notes()
     print(f"Indexed {indexed_chunks} note chunks.")
-    answer = ask_langchain("What is Supervised Learning? What are the two types?")
+    answer = ask("What is Supervised Learning? What are the two types?")
     print(answer)
