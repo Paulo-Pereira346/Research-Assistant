@@ -43,3 +43,7 @@ htmlcov/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+notes/
+
+chroma_db/
