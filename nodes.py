@@ -41,6 +41,12 @@ def web_node(state: ResearchState) -> dict:
     
     return {"web_results": answer}
 
+def notes_node(state: ResearchState) -> dict:
+    
+    query = state['question']
+    answer = search_notes.invoke({"query": query})
+    
+    return {"notes_results": answer}
 
 if __name__ == "__main__":
     print(route_node("What is the best gpt model and what is the latest one?"))
