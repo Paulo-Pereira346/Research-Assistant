@@ -25,7 +25,7 @@ vector_store = Chroma(
 )
 
 #Function used for semantic retrieval before the router node makes a routing decision
-def check_notes_relevance(question, threshold=0.5):
+def check_notes_relevance(question, threshold=0.8):
     """
     Performs fast semantic retrieval to check if notes are relevant to the question.
     Returns True if the best matching note exceeds the relevance threshold.
@@ -45,10 +45,10 @@ def check_notes_relevance(question, threshold=0.5):
         return False
     
     # Extract the similarity score (ignore the document itself)
-    _, similarity_score = results[0]
+    _, similarity_score = results[0]   
     
     # Return whether the similarity score meets the threshold
-    return similarity_score >= threshold
+    return similarity_score < threshold
 
 
 #Prompt for llm call in routing node
@@ -141,3 +141,21 @@ def synthesizer_node(state: ResearchState) -> dict:
     )
 
     return {"final_answer": response.content}
+
+
+if __name__ == "__main__":
+    # Test questions
+    test_questions = [
+        "What is machine learning?",
+        "What is gradient descent?",
+        "What is the 5th amendment in US Law?",
+        "What is Python?",
+        "What is the latest iPhone?",
+        "What is the 5th Amendment in US Law"
+    ]
+    
+    print("Testing semantic retrieval...\n")
+    for question in test_questions:
+        has_relevant = check_notes_relevance(question, threshold=0.5)
+        print(f"Q: {question}")
+        print(f"Relevant notes found: {has_relevant}\n")
