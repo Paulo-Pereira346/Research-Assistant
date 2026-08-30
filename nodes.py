@@ -1,5 +1,7 @@
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 
 from state import ResearchState
@@ -12,14 +14,56 @@ llm = ChatGroq(
     model_name = os.environ['GROQ_MODEL']
 )
 
+embeddings = HuggingFaceEmbeddings(
+    model_name = 'sentence-transformers/all-MiniLM-L6-v2'
+)
+
+vector_store = Chroma(
+    persist_directory = './chroma_db/',
+    embedding_function = embeddings,
+    collection_name = 'notes'
+)
+
+#Function used for semantic retrieval before the router node makes a routing decision
+def check_notes_relevance(question, threshold=0.5):
+    """
+    Performs fast semantic retrieval to check if notes are relevant to the question.
+    Returns True if the best matching note exceeds the relevance threshold.
+    
+    Args:
+        question: The user's question to check against notes
+        threshold: Similarity score threshold (0-1). Default 0.5.
+    
+    Returns:
+        Boolean indicating if relevant notes were found
+    """
+    # Retrieve only 1 most similar document for speed
+    results = vector_store.similarity_search_with_score(question, k=1)
+    
+    # If no documents found, notes are not relevant
+    if not results:
+        return False
+    
+    # Extract the similarity score (ignore the document itself)
+    _, similarity_score = results[0]
+    
+    # Return whether the similarity score meets the threshold
+    return similarity_score >= threshold
+
+
+#Prompt for llm call in routing node
 router_prompt = ChatPromptTemplate.from_template(
-    """For this question, do I need current web info, can I answer from personal notes,
-    or do I need both?
+    """For this question, determine if you need current web info, personal notes, or both.
+
+    IMPORTANT: {notes_availability}
+    If no relevant notes are found, you CANNOT choose "notes" or "both" - you must choose "web".
+    
     Question: {query}
 
     Answer with one word only: web, notes, or both."""
     )
 
+#Prompt for llm call in synthesizer node
 synth_prompt = ChatPromptTemplate.from_template(
                 """
                 Answer the user's question using the available research below.
@@ -47,10 +91,13 @@ synth_prompt = ChatPromptTemplate.from_template(
 def route_node(state: ResearchState) -> dict:
     
     query = state['question']
-
+    
+    # Check if notes are semantically relevant to the question
+    has_relevant_notes = check_notes_relevance(query)
+    notes_availability = "You have relevant notes available" if has_relevant_notes else "No relevant notes found"
     
     response = llm.invoke(
-    router_prompt.format_messages(query=query)
+        router_prompt.format_messages(query=query, notes_availability=notes_availability)
     )
 
     route = response.content.strip().lower()
