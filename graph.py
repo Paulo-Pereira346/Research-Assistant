@@ -1,18 +1,20 @@
 from langgraph.graph import StateGraph, END
 from state import ResearchState
-from nodes import route_node, web_node, notes_node, synthesizer_node
+from nodes import query_planner_node, route_node, web_node, notes_node, process_result_node, synthesizer_node
+from deciders import decide_route, is_both, should_continue_loop
 
 graph = StateGraph(ResearchState)
 
+graph.add_node("query_planner", query_planner_node)
 graph.add_node("router", route_node)
 graph.add_node("web", web_node)
 graph.add_node("notes", notes_node)
+graph.add_node("process_result", process_result_node)
 graph.add_node("synthesizer", synthesizer_node)
 
-graph.set_entry_point("router")
+graph.set_entry_point("query_planner")
 
-def decide_route(state: ResearchState) -> str:
-    return state["route"]  # returns "web", "notes", or "both"
+graph.add_edge("query_planner", "router")
 
 graph.add_conditional_edges(
     "router",
@@ -24,19 +26,26 @@ graph.add_conditional_edges(
     }
 )
 
-def is_both(state: ResearchState) -> str:
-    return "both" if state["route"] == "both" else "single"
-
 graph.add_conditional_edges(
     "web",
     is_both,
     {
         "both": "notes",
-        "single": "synthesizer"
+        "single": "process_result"
     }
 )
 
-graph.add_edge("notes", "synthesizer")
+
+graph.add_conditional_edges(
+    "process_result", 
+    should_continue_loop, 
+    {
+        "continue": "router",
+        "synthesize": "synthesizer"
+    }
+)
+
+graph.add_edge("notes", "process_result")
 graph.add_edge("synthesizer", END)
 
 app = graph.compile()

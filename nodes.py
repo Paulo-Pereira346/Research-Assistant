@@ -81,27 +81,23 @@ router_prompt = ChatPromptTemplate.from_template(
 
 #Prompt for llm call in synthesizer node
 synth_prompt = ChatPromptTemplate.from_template(
-                """
-                Answer the user's question using the available research below.
+        """You are a research synthesizer. Your task is to integrate and frame the research findings into a comprehensive, well-structured answer.
 
-                Routing decision: {route}
-                User question: {query}
-
-                Web research:
-                {web}
-
-                Personal notes:
-                {notes}
-
-                Instructions:
-                - If the routing decision is "web", use the web research as the source.
-                - If the routing decision is "notes", use the personal notes as the source.
-                - If the routing decision is "both", combine both sources and reconcile
-                    conflicting information carefully.
-                - Ignore a source if it is empty or unavailable, even when it is shown above.
-                - Do not claim information came from a source that does not support it.
-                - Give a clear, direct answer to the user's question.
-        """
+        Original question: {original_question}
+        
+        Research findings from sub-questions:
+        {context}
+        
+        Instructions:
+        - Synthesize the findings into a cohesive narrative that directly addresses the original question
+        - Organize information logically with clear connections between concepts
+        - Frame findings in context of the original question - explain how each part contributes to answering it
+        - Eliminate redundancy while preserving important insights
+        - Create smooth transitions between different aspects of the answer
+        - Start with the most relevant/important insights
+        - Ensure the final answer reads as a unified response, not a collection of separate answers
+        
+        Provide a comprehensive, well-structured answer that integrates all the research findings."""
     )
 
 def query_planner_node(state: ResearchState) -> dict:
@@ -153,22 +149,50 @@ def notes_node(state: ResearchState) -> dict:
     return {"notes_results": answer}
 
 
+def process_result_node(state: ResearchState) -> dict:
+    """Store current sub-question result and decide if we loop"""
+    current_sub_question = state["sub_questions"][state["current_index"]]
+    
+    # Combine web + notes results for this sub-question
+    result = {
+        "question": current_sub_question,
+        "web_results": state["web_results"],
+        "notes_results": state["notes_results"],
+        "route": state["route"]
+    }
+    
+    # Append to sub_results
+    updated_sub_results = state["sub_results"] + [result]
+    
+    # Increment index for next sub-question
+    next_index = state["current_index"] + 1
+    
+    return {
+        "sub_results": updated_sub_results,
+        "current_index": next_index,
+        "web_results": "",    # reset for next iteration
+        "notes_results": ""
+    }
+
+
 def synthesizer_node(state: ResearchState) -> dict:
     query = state["question"]
-    web_results = state.get("web_results", "")
-    notes_results = state.get("notes_results", "")
-    route = state["route"]
+    
+     # Combine all sub-results
+    combined_context = ""
+    for result in state["sub_results"]:
+        combined_context += f"Q: {result['question']}\n"
+        combined_context += f"Web: {result['web_results']}\n"
+        combined_context += f"Notes: {result['notes_results']}\n\n"
     
     
     response = llm.invoke(
         synth_prompt.format_messages(
-            query = query,
-            web = web_results,
-            notes = notes_results,
-            route = route
+            context=combined_context,
+            original_question=state["question"]
         )
     )
-
+    
     return {"final_answer": response.content}
 
 
