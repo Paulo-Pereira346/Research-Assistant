@@ -51,6 +51,22 @@ def check_notes_relevance(question, threshold=0.8):
     return similarity_score < threshold
 
 
+#Prompt for llm call in Query planner node
+query_planner_prompt = ChatPromptTemplate.from_template(
+    """Analyze the user's question and break it down strategically.
+
+    Question: {query}
+
+    Instructions:
+    - If the question is simple and focused, return it as-is (a single line).
+    - If the question is complex or multi-faceted, break it into 1-3 focused sub-questions that address distinct aspects.
+    - Ensure sub-questions are specific and can be researched independently.
+    - Preserve the core intent of the original question.
+    
+    Return ONLY the question(s), one per line, no numbering or extra text."""
+)
+
+
 #Prompt for llm call in routing node
 router_prompt = ChatPromptTemplate.from_template(
     """For this question, determine if you need current web info, personal notes, or both.
@@ -87,6 +103,19 @@ synth_prompt = ChatPromptTemplate.from_template(
                 - Give a clear, direct answer to the user's question.
         """
     )
+
+def query_planner_node(state: ResearchState) -> dict:
+    
+    question = state['question']
+    
+    response = llm.invoke(
+        query_planner_prompt.format_messages(query=question)
+    )
+    
+    # Parse response.content: split by newlines and clean up each line
+    sub_questions = [q.strip() for q in response.content.strip().split('\n') if q.strip()]
+    
+    return {"sub_questions": sub_questions, "current_index": 0}
 
 def route_node(state: ResearchState) -> dict:
     
@@ -144,18 +173,21 @@ def synthesizer_node(state: ResearchState) -> dict:
 
 
 if __name__ == "__main__":
-    # Test questions
-    test_questions = [
-        "What is machine learning?",
-        "What is gradient descent?",
-        "What is the 5th amendment in US Law?",
-        "What is Python?",
-        "What is the latest iPhone?",
-        "What is the 5th Amendment in US Law"
-    ]
+    # # Test questions
+    # test_questions = [
+    #     "What is machine learning?",
+    #     "What is gradient descent?",
+    #     "What is the 5th amendment in US Law?",
+    #     "What is Python?",
+    #     "What is the latest iPhone?",
+    #     "What is the 5th Amendment in US Law"
+    # ]
     
-    print("Testing semantic retrieval...\n")
-    for question in test_questions:
-        has_relevant = check_notes_relevance(question, threshold=0.5)
-        print(f"Q: {question}")
-        print(f"Relevant notes found: {has_relevant}\n")
+    # print("Testing semantic retrieval...\n")
+    # for question in test_questions:
+    #     has_relevant = check_notes_relevance(question, threshold=0.5)
+    #     print(f"Q: {question}")
+    #     print(f"Relevant notes found: {has_relevant}\n")
+    
+    # query_planner_node("What is Machine Learning and what is the latest model released by OPENAI for CHATGPT?")
+    pass
