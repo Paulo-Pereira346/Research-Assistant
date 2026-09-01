@@ -119,7 +119,7 @@ def query_planner_node(state: ResearchState) -> dict:
 
 def route_node(state: ResearchState) -> dict:
     
-    query = state['question']
+    query = state['sub_questions'][state['current_index']]
     
     # Check if notes are semantically relevant to the question
     has_relevant_notes = check_notes_relevance(query)
@@ -139,7 +139,7 @@ def route_node(state: ResearchState) -> dict:
     
 def web_node(state: ResearchState) -> dict:
     
-    query = state['question']
+    query = state['sub_questions'][state['current_index']]
     answer = search_web.invoke({"query": query})
     
     return {"web_results": answer}
@@ -147,7 +147,7 @@ def web_node(state: ResearchState) -> dict:
 
 def notes_node(state: ResearchState) -> dict:
     
-    query = state['question']
+    query = state['sub_questions'][state['current_index']]
     answer = search_notes.invoke({"query": query})
     
     return {"notes_results": answer}
