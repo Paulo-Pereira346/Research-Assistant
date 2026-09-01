@@ -115,7 +115,7 @@ def query_planner_node(state: ResearchState) -> dict:
     # Parse response.content: split by newlines and clean up each line
     sub_questions = [q.strip() for q in response.content.strip().split('\n') if q.strip()]
     
-    return {"sub_questions": sub_questions, "current_index": 0}
+    return {"sub_questions": sub_questions, "current_index": 0, "sub_results": []}
 
 def route_node(state: ResearchState) -> dict:
     
