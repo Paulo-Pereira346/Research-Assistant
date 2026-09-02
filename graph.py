@@ -58,11 +58,15 @@ def run(question: str):
         "final_answer": "",
         "route": ""
     })
-    return result["final_answer"], result["route"]
+
+    routes = {sub_result["route"] for sub_result in result["sub_results"]}
+    overall_route = "both" if len(routes) > 1 or "both" in routes else routes.pop()
+
+    return result["final_answer"], overall_route
 
 if __name__ == "__main__":
     # Test the graph
-    test_question = "What is machine learning and what is the latest AI model released by OpenAI?"
+    test_question = "Compare supervised learning with the latest reinforcement learning techniques. Also explain what neural networks are and how they differ from classical algorithms."
     answer, route = run(test_question)
     
     print(f"Question: {test_question}")

@@ -90,6 +90,8 @@ synth_prompt = ChatPromptTemplate.from_template(
         
         Instructions:
         - Synthesize the findings into a cohesive narrative that directly addresses the original question
+        - For every distinct sub-question, explicitly identify the source used immediately after addressing it using exactly one of: "Source: Web", "Source: Notes", or "Source: Web + Notes"
+        - Use the provided source for each sub-question; do not infer or change it from the research content
         - Organize information logically with clear connections between concepts
         - Frame findings in context of the original question - explain how each part contributes to answering it
         - Eliminate redundancy while preserving important insights
@@ -176,12 +178,23 @@ def process_result_node(state: ResearchState) -> dict:
 
 
 def synthesizer_node(state: ResearchState) -> dict:
+    # print("\n=== SYNTHESIZER DEBUG ===")
+    # print(f"Sub-results count: {len(state['sub_results'])}")
+    # for i, result in enumerate(state["sub_results"]):
+    #     print(f"\nSub-Q {i+1}: {result['question']}")
+    #     print(f"  Route: {result['route']}")
+    #     print(f"  Web: {result['web_results'][:100]}..." if result['web_results'] else "  Web: (empty)")
+    #     print(f"  Notes: {result['notes_results'][:100]}..." if result['notes_results'] else "  Notes: (empty)")
+    # print("======================\n")
+    
     query = state["question"]
     
      # Combine all sub-results
     combined_context = ""
     for result in state["sub_results"]:
+        source_label = {"web": "Web", "notes": "Notes", "both": "Web + Notes"}[result["route"]]
         combined_context += f"Q: {result['question']}\n"
+        combined_context += f"Source used: {source_label}\n"
         combined_context += f"Web: {result['web_results']}\n"
         combined_context += f"Notes: {result['notes_results']}\n\n"
     
