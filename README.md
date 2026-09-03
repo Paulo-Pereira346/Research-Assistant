@@ -13,64 +13,40 @@ An agentic research assistant built with Python, LangGraph, and Streamlit. It de
 - Source-aware answers: labels each part of the final response as `Source: Web`, `Source: Notes`, or `Source: Web + Notes`.
 - Streamlit interface: provides a simple question input, loading state, answer display, and research method summary.
 
-## Workflow
+## Architecture
 
-MULTI-AGENT RESEARCH ASSISTANT ARCHITECTURE
-
-┌─────────────────┐
-│  User Question  │
-└────────┬────────┘
-         │
-         ▼
-┌──────────────────────────┐
-│  Query Planner Agent     │  ← Decomposes into sub-Qs
-│  "Break this into parts" │
-└────────┬─────────────────┘
-         │
-         ▼
-┌──────────────────────────┐
-│  Router Agent            │  ← Decides: web/notes/both
-│  (Semantic Retrieval)    │     for EACH sub-question
-└─────┬──────────────┬─────┘
-      │              │
-      ▼              ▼
-  ┌────────┐    ┌────────┐
-  │Web Node│    │Notes   │
-  │        │    │Node    │
-  └────┬───┘    └───┬────┘
-       │            │
-       └──────┬─────┘
-              ▼
-    ┌──────────────────────┐
-    │ Process Result Node  │  ← Saves results
-    │ (Loop Manager)       │    Checks: more sub-Qs?
-    └──────┬───────────────┘
-           │
-      ┌────▼────┐
-      │ Continue │
-      │ loop?    │
-      └────┬────┘
-           │
-      ┌────┴─────────────────┐
-      │ YES                 NO│
-      │                       │
-      ▼                       ▼
-   Router          ┌──────────────────────┐
-   (next sub-Q)    │ Synthesizer Agent    │ ← Combines ALL
-                   │ (Citation Formatter) │   sub-results
-                   └──────┬───────────────┘
-                          │
-                          ▼
-                   ┌──────────────────┐
-                   │  Final Answer    │
-                   │  (With sources)  │
-                   └──────────────────┘
-
-KEY:
-🟦 Agent Nodes (LLMs that think & decide)
-🟩 Tool Nodes (Execute code, no thinking)
-
-For a `both` route, the web search runs first and the notes search follows. Results are stored per sub-question, so the synthesizer can preserve the source used for each part of the answer.
+```mermaid
+graph TD
+    A["🤔 Query Planner Agent<br/>Decomposes compound questions<br/>into sub-questions"] 
+    B["📋 Router Agent<br/>Decides route for each sub-Q<br/>using semantic retrieval"]
+    C["🌐 Web Search Node<br/>Searches current information"]
+    D["📚 Notes Search Node<br/>Searches personal notes"]
+    E["💾 Process Result Node<br/>Stores results & manages loop"]
+    F{"More<br/>sub-questions?"}
+    G["🧠 Synthesizer Agent<br/>Combines all sub-results<br/>with citations"]
+    H["✅ Final Answer"]
+    
+    Start(["User Question"])
+    Start --> A
+    A --> B
+    B --> C
+    B --> D
+    C --> E
+    D --> E
+    E --> F
+    F -->|Yes| B
+    F -->|No| G
+    G --> H
+    
+    style A fill:#4A90E2,stroke:#333,stroke-width:2px,color:#fff
+    style B fill:#4A90E2,stroke:#333,stroke-width:2px,color:#fff
+    style G fill:#4A90E2,stroke:#333,stroke-width:2px,color:#fff
+    style C fill:#7ED321,stroke:#333,stroke-width:2px,color:#fff
+    style D fill:#7ED321,stroke:#333,stroke-width:2px,color:#fff
+    style E fill:#FF6B6B,stroke:#333,stroke-width:2px,color:#fff
+    style F fill:#F5A623,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#50E3C2,stroke:#333,stroke-width:2px,color:#fff
+```
 
 ## Project Structure
 
