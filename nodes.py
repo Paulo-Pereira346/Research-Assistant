@@ -32,7 +32,7 @@ def check_notes_relevance(question, threshold=0.8):
     
     Args:
         question: The user's question to check against notes
-        threshold: Similarity score threshold (0-1). Default 0.5.
+        threshold: Similarity score threshold (0-1). Default 0.8.
     
     Returns:
         Boolean indicating if relevant notes were found
