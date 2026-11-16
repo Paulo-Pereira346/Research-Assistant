@@ -138,9 +138,9 @@ def route_node(state: ResearchState) -> dict:
 def web_node(state: ResearchState) -> dict:
     
     query = state['sub_questions'][state['current_index']]
-    answer = search_web.invoke({"query": query})
+    results = search_web.invoke({"query": query})
     
-    return {"web_results": answer}
+    return {"web_results": results}
 
 
 def notes_node(state: ResearchState) -> dict:
